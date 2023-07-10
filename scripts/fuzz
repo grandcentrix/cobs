@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script=$(readlink -f "$0")
+scriptpath=$(dirname "$script")
+repo_root=$(git -C "$scriptpath" rev-parse --show-toplevel)
+
+run_test() {
+    test_source="$1"
+    test_name="${test_source##*/}"
+    test_build="build-fuzz-$test_name"
+    test_binary="$test_build/zephyr/zephyr.elf"
+
+    west build -d "$test_build" -b native_posix_64 "$test_source"
+
+    "$test_binary" "$test_source/corpus/"*
+}
+
+if [ "$#" -ge 1 ]; then
+    run_test "$repo_root/fuzz/$1"
+fi
+
+for test_source in "$repo_root/fuzz/"* ; do
+    run_test "$test_source"
+done
