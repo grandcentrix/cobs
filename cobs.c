@@ -47,6 +47,9 @@ int cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict 
 
 	while (read_index < length) {
 		code = input[read_index];
+		if (code == 0) {
+			return -EINVAL;
+		}
 
 		if (read_index + code > length && code != 1) {
 			return -EINVAL;
@@ -55,8 +58,14 @@ int cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict 
 		read_index++;
 
 		for (i = 1; i < code; i++) {
-			output[write_index++] = input[read_index++];
+			const uint8_t byte = input[read_index++];
+			if (byte == 0) {
+				return -EINVAL;
+			}
+
+			output[write_index++] = byte;
 		}
+
 		if (code != 0xFF && read_index != length) {
 			output[write_index++] = '\0';
 		}
@@ -74,6 +83,9 @@ int cobs_decode_inplace(uint8_t *data, size_t max_length, size_t *decoded_size)
 
 	while (read_index < max_length) {
 		code = data[read_index];
+		if (code == 0) {
+			return -EINVAL;
+		}
 
 		if ((read_index + code > max_length) && (code != 1)) {
 			return -EINVAL;
@@ -82,7 +94,12 @@ int cobs_decode_inplace(uint8_t *data, size_t max_length, size_t *decoded_size)
 		read_index++;
 
 		for (i = 1; i < code; i++) {
-			data[write_index++] = data[read_index++];
+			const uint8_t byte = data[read_index++];
+			if (byte == 0) {
+				return -EINVAL;
+			}
+
+			data[write_index++] = byte;
 		}
 
 		if (code != 0xFF && read_index != max_length) {
