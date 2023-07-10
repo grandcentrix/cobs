@@ -32,7 +32,8 @@ size_t cobs_encode(const uint8_t *restrict input, size_t length, uint8_t *restri
  * Remove the "restrict" qualifiers if compiling with a
  * pre-C99 C dialect.
  */
-size_t cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict output);
+int cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict output,
+		size_t *decoded_size);
 
 /**
  * Unstuffs "length" bytes of data at the location pointed to by
@@ -40,6 +41,6 @@ size_t cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restri
  * Returns the number of bytes of the decoded data if it was
  * successfully unstuffed, and 0 if there was an error unstuffing.
  */
-size_t cobs_decode_inplace(uint8_t *restrict data, size_t max_length);
+int cobs_decode_inplace(uint8_t *restrict data, size_t max_length, size_t *decoded_size);
 
 #endif

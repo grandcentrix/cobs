@@ -20,7 +20,9 @@ static void verify_inplace_decoder(const uint8_t *const input_data_, const size_
 	zassert_not_null(input_data);
 	memcpy(input_data, input_data_, input_length);
 
-	const size_t output_length = cobs_decode_inplace(input_data, input_length);
+	size_t output_length;
+	int ret = cobs_decode_inplace(input_data, input_length, &output_length);
+	zassert_equal(ret, 0);
 	zassert_equal(output_length, reference_length);
 	zassert_mem_equal(input_data, reference, reference_length);
 
@@ -42,7 +44,9 @@ static void roundtrip_test_runner(const void *input, const size_t length)
 	zassert_equal(encoded_buffer[encoded_length], 0xAB);
 	zassert_equal(encoded_buffer[encoded_buffer_length - 1], 0xAB);
 
-	const size_t decoded_length = cobs_decode(encoded_buffer, encoded_length, decoded_buffer);
+	size_t decoded_length;
+	ret = cobs_decode(encoded_buffer, encoded_length, decoded_buffer, &decoded_length);
+	zassert_ok(ret);
 	zassert_equal(decoded_length, length);
 	zassert_mem_equal(decoded_buffer, input, length);
 	zassert_equal(decoded_buffer[length], 0xAB);
