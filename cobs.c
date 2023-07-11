@@ -26,6 +26,11 @@ size_t cobs_encode(const uint8_t *restrict input, size_t length, uint8_t *restri
 			code++;
 			if (code == 0xFF) {
 				output[code_index] = code;
+
+				if (read_index == length) {
+					return write_index;
+				}
+
 				code = 1;
 				code_index = write_index++;
 			}
