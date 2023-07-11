@@ -43,3 +43,7 @@ jobs:
         working-directory: cobs
         run: |
           west twister -vv -T tests --integration
+
+      - name: Static analysis
+        working-directory: cobs
+        run: ./scripts/tidy
