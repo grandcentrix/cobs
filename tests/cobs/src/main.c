@@ -60,17 +60,8 @@ static void roundtrip_test_runner(const void *input, const size_t length)
 
 	const size_t encoded_length2 =
 		cobs_encode_stream_simple(input, length, encoded_buffer2, encoded_buffer_length);
-	if (length == 254 && !memchr(input, 0x00, length)) {
-		/* The normal encoder writes an additional 0x01, if the
-		 * previous code was 0xff and there is no data left.
-		 */
-		zassert_equal(encoded_length2, encoded_length);
-		zassert_equal(encoded_buffer[encoded_length - 1], 0x01);
-		zassert_mem_equal(encoded_buffer2, encoded_buffer, encoded_length - 1);
-	} else {
-		zassert_equal(encoded_length2, encoded_length + 1);
-		zassert_mem_equal(encoded_buffer2, encoded_buffer, encoded_length);
-	}
+	zassert_equal(encoded_length2, encoded_length + 1);
+	zassert_mem_equal(encoded_buffer2, encoded_buffer, encoded_length);
 
 	size_t decoded_length2;
 	ret = cobs_decode_stream_simple(encoded_buffer2, encoded_length2, decoded_buffer2,
