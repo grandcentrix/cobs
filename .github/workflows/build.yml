@@ -39,6 +39,9 @@ jobs:
       - name: Install Python dependencies
         run: pip3 install -r zephyr/scripts/requirements.txt
 
+      - name: Static analysis
+        run: ./cobs/scripts/tidy
+
       - name: Twister Tests
         working-directory: cobs
         run: |
