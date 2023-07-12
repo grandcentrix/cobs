@@ -39,6 +39,10 @@ jobs:
       - name: Install Python dependencies
         run: pip3 install -r zephyr/scripts/requirements.txt
 
+      - name: Checkpatch
+        working-directory: cobs
+        run: ./scripts/checkpatch
+
       - name: Twister Tests
         working-directory: cobs
         run: |
