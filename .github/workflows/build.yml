@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - run: sudo apt-get update
-      - run: sudo apt-get install ninja-build gcc-multilib
+      - run: sudo apt-get install fd-find ninja-build gcc-multilib
+      - run: echo "PATH=$PATH:/usr/lib/cargo/bin" >> $GITHUB_ENV
       - run: pip3 install -U west
 
       - name: Checkout
@@ -38,6 +39,10 @@ jobs:
 
       - name: Install Python dependencies
         run: pip3 install -r zephyr/scripts/requirements.txt
+
+      - name: Checkpatch
+        working-directory: cobs
+        run: ./scripts/checkpatch
 
       - name: Static analysis
         run: ./cobs/scripts/tidy

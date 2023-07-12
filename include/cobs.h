@@ -29,7 +29,7 @@ size_t cobs_encode(const uint8_t *restrict input, size_t length, uint8_t *restri
 /**
  * Unstuffs "length" bytes of data at the location pointed to by
  * "input", writing the output to the location pointed to by
- * "output". On success, returns 0 and writes the the number of bytes
+ * "output". On success, returns 0 and writes the number of bytes
  * that were written to "output" to "decoded_size". On failure, it
  * returns a negative errno code.
  *
@@ -42,7 +42,7 @@ int cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict 
 /**
  * Unstuffs "max_length" bytes of data at the location pointed to by
  * "data", in-place, over-writing the original.
- * On success, returns 0 and writes the the number of bytes
+ * On success, returns 0 and writes the number of bytes
  * that were written to "data" to "decoded_size". On failure, it
  * returns a negative errno code.
  */

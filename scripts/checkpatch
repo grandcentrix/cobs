@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script=$(readlink -f "$0")
+scriptpath=$(dirname "$script")
+repo_root=$(git -C "$scriptpath" rev-parse --show-toplevel)
+zephyr_base=$(west list -f '{abspath}' zephyr)
+
+args=("${@}")
+for i in "${!args[@]}"; do
+	args[i]=$(realpath "${args[$i]}")
+done
+
+# This will cause our config to be loaded
+cd "$repo_root"
+
+if [ "$#" -ge 1 ]; then
+	"$zephyr_base/scripts/checkpatch.pl" --color=always -q -f "${args[@]}"
+else
+	fd . "$repo_root" -e h -e c -x \
+		"$zephyr_base/scripts/checkpatch.pl" --color=always -q -f
+fi
+
+echo "checkpatch passed 🎉"
