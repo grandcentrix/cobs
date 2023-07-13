@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef COBS_H
-#define COBS_H
+#ifndef COBS_H_
+#define COBS_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -48,4 +48,4 @@ int cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict 
  */
 int cobs_decode_inplace(uint8_t *restrict data, size_t max_length, size_t *decoded_size);
 
-#endif
+#endif /* COBS_H_ */
