@@ -1,10 +1,35 @@
-[Consistent Overhead Byte Stuffing](http://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing) is an encoding that removes all 0 bytes
-from arbitrary binary data. The encoded data consists only of bytes with values from 0x01 to 0xFF. This is useful for preparing data for
-transmission over a serial link (RS-232 or RS-485 for example), as the 0 byte can be used to unambiguously indicate packet boundaries. COBS
-also has the advantage of adding very little overhead (at least 1 byte, plus up to an additional byte per 254 bytes of data). For messages
-smaller than 254 bytes, the overhead is constant.
+# Consistent Overhead Byte Stuffing (COBS)
 
-This is an implementation of COBS for C. It is designed to be both efficient and robust. The code is implemented in modern C99. The decoder
-is designed to detect  malformed input data and report an error upon detection. A test suite is included to validate the encoder and decoder.
+This is a C implementation of
+[Consistent Overhead Byte Stuffing](http://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing).
 
-For more information, see my blog bost on [Consistent Overhead Byte Stuffing](http://www.jacquesf.com/2011/03/consistent-overhead-byte-stuffing).
+## Features
+- Designed for efficiency.
+- Designed for robustness. Malformed data is detected and reported.
+- No memory allocations within the library.
+- Inplace decoder variant.
+- Streaming encoders and decoders.
+- Unit tests.
+- Zephyr supports.
+
+## History
+This implementation was forked from Jacques Fortier and extended heavily.
+For more information, see Jacques Fortiers blog bost on
+[Consistent Overhead Byte Stuffing](http://www.jacquesf.com/2011/03/consistent-overhead-byte-stuffing).
+
+## Implementations
+
+### Normal
+This is the slightly modified original implementation from Jacques Fortier.
+They expect you to provide buffers that are large enough and encode/decode data
+from one buffer into another.
+
+### Inplace
+Currently only supported for decoding. This removes the need for a second
+buffer because it overrides the source data. Since the decoded data is always
+smaller than the encoded data it will always fit.
+
+### Streaming
+Those allow passing data to the encoder or decoder as it is being received.
+The encoder/decoder will tell you when the message is complete or when there
+was an error.
