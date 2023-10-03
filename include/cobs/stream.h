@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+/* SPDX-License-Identifier: MIT */
 
 #ifndef COBS_STREAM_H_
 #define COBS_STREAM_H_
