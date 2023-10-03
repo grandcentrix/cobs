@@ -34,7 +34,7 @@ jobs:
         working-directory: cobs
         run: |
           west init -l --mf west-ci.yml .
-          west update -o--depth=1
+          west update
 
       - name: Install Python dependencies
         run: pip3 install -r zephyr/scripts/requirements.txt
