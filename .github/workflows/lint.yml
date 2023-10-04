@@ -18,7 +18,7 @@ jobs:
 
       - run: wget https://apt.llvm.org/llvm.sh
       - run: chmod +x llvm.sh
-      - run: sudo ./llvm.sh
+      - run: sudo ./llvm.sh 16
       - run: sudo apt install clang-format-16
       - run: sudo ln -s "$(which clang-format-16)" /usr/local/bin/clang-format
 
