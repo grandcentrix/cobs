@@ -12,6 +12,10 @@
 
 #include <cobs/stream.h>
 
+#define Z_COBS_DIV_ROUND_UP(n, d)   (((n) + (d)-1) / (d))
+#define COBS_MAX_OVERHEAD(size)     MAX(1, Z_COBS_DIV_ROUND_UP((size), 254))
+#define COBS_MAX_ENCODED_SIZE(size) ((size) + COBS_MAX_OVERHEAD((size)))
+
 /**
  * Stuffs "length" bytes of data at the location pointed to by
  * "input", writing the output to the location pointed to by
