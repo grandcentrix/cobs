@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: Apache-2.0 */
+/* SPDX-License-Identifier: MIT */
 
 #ifndef COBS_TESTUTILS_H
 #define COBS_TESTUTILS_H
