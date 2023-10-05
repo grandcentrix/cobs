@@ -4,16 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 
-/* Stuffs "length" bytes of data at the location pointed to by
- * "input", writing the output to the location pointed to by
- * "output". Returns the number of bytes written to "output".
- *
- * Remove the "restrict" qualifiers if compiling with a
- * pre-C99 C dialect.
- */
 size_t cobs_encode(const uint8_t *restrict input, size_t length, uint8_t *restrict output)
 {
 	size_t read_index = 0;
@@ -32,6 +26,11 @@ size_t cobs_encode(const uint8_t *restrict input, size_t length, uint8_t *restri
 			code++;
 			if (code == 0xFF) {
 				output[code_index] = code;
+
+				if (read_index == length) {
+					return write_index;
+				}
+
 				code = 1;
 				code_index = write_index++;
 			}
@@ -43,16 +42,8 @@ size_t cobs_encode(const uint8_t *restrict input, size_t length, uint8_t *restri
 	return write_index;
 }
 
-/* Unstuffs "length" bytes of data at the location pointed to by
- * "input", writing the output * to the location pointed to by
- * "output". Returns the number of bytes written to "output" if
- * "input" was successfully unstuffed, and 0 if there was an
- * error unstuffing "input".
- *
- * Remove the "restrict" qualifiers if compiling with a
- * pre-C99 C dialect.
- */
-size_t cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict output)
+int cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restrict output,
+		size_t *decoded_size)
 {
 	size_t read_index = 0;
 	size_t write_index = 0;
@@ -61,30 +52,35 @@ size_t cobs_decode(const uint8_t *restrict input, size_t length, uint8_t *restri
 
 	while (read_index < length) {
 		code = input[read_index];
+		if (code == 0) {
+			return -EINVAL;
+		}
 
 		if (read_index + code > length && code != 1) {
-			return 0;
+			return -EINVAL;
 		}
 
 		read_index++;
 
 		for (i = 1; i < code; i++) {
-			output[write_index++] = input[read_index++];
+			const uint8_t byte = input[read_index++];
+			if (byte == 0) {
+				return -EINVAL;
+			}
+
+			output[write_index++] = byte;
 		}
+
 		if (code != 0xFF && read_index != length) {
 			output[write_index++] = '\0';
 		}
 	}
 
-	return write_index;
+	*decoded_size = write_index;
+	return 0;
 }
 
-/* Unstuffs "length" bytes of data at the location pointed to by
- * "data", in-place, over-writing the original.
- * Returns the number of bytes of the decoded data if it was
- * successfully unstuffed, and 0 if there was an error unstuffing.
- */
-size_t cobs_decode_inplace(uint8_t *data, size_t max_length)
+int cobs_decode_inplace(uint8_t *data, size_t max_length, size_t *decoded_size)
 {
 	size_t read_index = 0;
 	size_t write_index = 0;
@@ -92,15 +88,23 @@ size_t cobs_decode_inplace(uint8_t *data, size_t max_length)
 
 	while (read_index < max_length) {
 		code = data[read_index];
+		if (code == 0) {
+			return -EINVAL;
+		}
 
 		if ((read_index + code > max_length) && (code != 1)) {
-			return 0;
+			return -EINVAL;
 		}
 
 		read_index++;
 
 		for (i = 1; i < code; i++) {
-			data[write_index++] = data[read_index++];
+			const uint8_t byte = data[read_index++];
+			if (byte == 0) {
+				return -EINVAL;
+			}
+
+			data[write_index++] = byte;
 		}
 
 		if (code != 0xFF && read_index != max_length) {
@@ -108,5 +112,6 @@ size_t cobs_decode_inplace(uint8_t *data, size_t max_length)
 		}
 	}
 
-	return write_index;
+	*decoded_size = write_index;
+	return 0;
 }
