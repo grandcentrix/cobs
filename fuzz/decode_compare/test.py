@@ -2,7 +2,7 @@ from cobs import cobs
 
 
 def process(input_data):
-    # C expexts the 0-byte, python doesn't
+    # C expects the 0-byte, python doesn't
     if len(input_data) == 0:
         raise Exception("Missing 0-byte")
 

@@ -16,6 +16,8 @@ jobs:
       - run: sudo apt-get install ripgrep fd-find shellcheck
       - run: echo "PATH=$PATH:/usr/lib/cargo/bin" >> $GITHUB_ENV
 
+      - run: curl -L https://github.com/crate-ci/typos/releases/download/v1.16.1/typos-v1.16.1-x86_64-unknown-linux-musl.tar.gz | tar -C /usr/local/bin -zxf - ./typos
+
       - run: wget https://apt.llvm.org/llvm.sh
       - run: chmod +x llvm.sh
       - run: sudo ./llvm.sh 16
