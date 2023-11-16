@@ -8,7 +8,7 @@ manifest:
   projects:
     - name: zephyr
       remote: zephyrproject-rtos
-      revision: zephyr-v3.4.0
+      revision: zephyr-v3.5.0
       import:
         name-allowlist:
           - cmsis
