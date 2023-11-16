@@ -37,8 +37,12 @@ jobs:
           west init -l --mf west-ci.yml .
           west update
 
-      - name: Install Python dependencies
+      - name: Install Zephyr Python dependencies
         run: pip3 install -r zephyr/scripts/requirements.txt
+
+      - name: Install COBS Python dependencies
+        working-directory: cobs
+        run: pip3 install -r requirements.txt
 
       - name: Checkpatch
         working-directory: cobs
@@ -51,3 +55,7 @@ jobs:
         working-directory: cobs
         run: |
           west twister -vv -T tests --integration
+
+      - name: Test fuzzing corpus
+        working-directory: cobs
+        run: ./scripts/fuzz
