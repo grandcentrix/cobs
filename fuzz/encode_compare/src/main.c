@@ -41,7 +41,7 @@ static void compare_result(const char *const logprefix, const void *const input,
 	}
 }
 
-int fuzzer_test_one_input(const uint8_t *const input, const size_t input_size)
+static void fuzzer_test_one_input(const uint8_t *const input, const size_t input_size)
 {
 	size_t encoded_size;
 	int ret;
@@ -67,5 +67,35 @@ int fuzzer_test_one_input(const uint8_t *const input, const size_t input_size)
 
 	Py_DECREF(python_return);
 	PyErr_Clear();
+}
+
+static K_SEM_DEFINE(fuzz_sem, 0, K_SEM_MAX_LIMIT);
+
+static void fuzz_isr(const void *arg)
+{
+	/* We could call check0() to execute the fuzz case here, but
+	 * pass it through to the main thread instead to get more OS
+	 * coverage.
+	 */
+	k_sem_give(&fuzz_sem);
+}
+
+int main(void)
+{
+	extern const uint8_t *posix_fuzz_buf;
+	extern size_t posix_fuzz_sz;
+
+	IRQ_CONNECT(CONFIG_ARCH_POSIX_FUZZ_IRQ, 0, fuzz_isr, NULL, 0);
+	irq_enable(CONFIG_ARCH_POSIX_FUZZ_IRQ);
+
+	while (true) {
+		k_sem_take(&fuzz_sem, K_FOREVER);
+
+		/* Execute the fuzz case we got from LLVM and passed
+		 * through an interrupt to this thread.
+		 */
+		fuzzer_test_one_input(posix_fuzz_buf, posix_fuzz_sz);
+	}
+
 	return 0;
 }

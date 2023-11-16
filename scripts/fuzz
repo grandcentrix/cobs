@@ -6,6 +6,8 @@ script=$(readlink -f "$0")
 scriptpath=$(dirname "$script")
 repo_root=$(git -C "$scriptpath" rev-parse --show-toplevel)
 
+export ZEPHYR_TOOLCHAIN_VARIANT=llvm
+
 run_test() {
     test_source="$1"
     test_name="${test_source##*/}"

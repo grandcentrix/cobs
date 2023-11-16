@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - run: sudo apt-get update
-      - run: sudo apt-get install ninja-build gcc-multilib
+      - run: sudo apt-get install fd-find ninja-build gcc-multilib
+      - run: echo "PATH=$PATH:/usr/lib/cargo/bin" >> $GITHUB_ENV
       - run: pip3 install -U west
 
       - name: Checkout
@@ -36,10 +37,25 @@ jobs:
           west init -l --mf west-ci.yml .
           west update
 
-      - name: Install Python dependencies
+      - name: Install Zephyr Python dependencies
         run: pip3 install -r zephyr/scripts/requirements.txt
+
+      - name: Install COBS Python dependencies
+        working-directory: cobs
+        run: pip3 install -r requirements.txt
+
+      - name: Checkpatch
+        working-directory: cobs
+        run: ./scripts/checkpatch
+
+      - name: Static analysis
+        run: ./cobs/scripts/tidy
 
       - name: Twister Tests
         working-directory: cobs
         run: |
           west twister -vv -T tests --integration
+
+      - name: Test fuzzing corpus
+        working-directory: cobs
+        run: ./scripts/fuzz

@@ -84,7 +84,8 @@ int cobs_decode_inplace(uint8_t *data, size_t max_length, size_t *decoded_size)
 {
 	size_t read_index = 0;
 	size_t write_index = 0;
-	uint8_t code, i;
+	uint8_t code;
+	uint8_t i;
 
 	while (read_index < max_length) {
 		code = data[read_index];

@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script=$(readlink -f "$0")
+scriptpath=$(dirname "$script")
+repo_root=$(git -C "$scriptpath" rev-parse --show-toplevel)
+build_dir="build-tidy"
+
+ZEPHYR_BASE=$(west list -f '{abspath}' zephyr)
+export ZEPHYR_BASE
+
+if [ "${NOBUILD:-}" != "1" ]; then
+	west build \
+		-d "$build_dir" \
+		-b native_posix \
+		"$ZEPHYR_BASE/samples/hello_world" -- \
+		-DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
+		-DCONFIG_NET_BUF=y \
+		-DCONFIG_COBS=y \
+		-DCONFIG_COMPILER_OPT='"-Werror"' \
+		-DCONFIG_ASSERT=y
+
+	sed -i 's/-fno-reorder-functions//g' "$build_dir"/compile_commands.json
+	sed -i 's/-fno-defer-pop//g' "$build_dir"/compile_commands.json
+	sed -i 's/--param=min-pagesize=0//g' "$build_dir"/compile_commands.json
+	sed -i 's/-fno-freestanding//g' "$build_dir"/compile_commands.json
+fi
+
+# shellcheck disable=SC2046
+clang-tidy \
+	-header-filter="$repo_root"'/.*' \
+	-extra-arg=-Wno-unknown-warning-option \
+	-p "$build_dir" \
+	"$@" \
+	$(jq -r .[].file "$build_dir/compile_commands.json" | grep "^$repo_root")
+
+echo "clang-tidy passed 🎉"
