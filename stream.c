@@ -6,45 +6,66 @@
 #include <string.h>
 #include <cobs.h>
 
-static size_t net_buf_pull_across_fragments(struct net_buf **const pbuf, void *const output_,
-					    size_t length)
+static inline struct cobs_buf_cursor cobs_buf_cursor_new(struct net_buf *buf)
 {
-	uint8_t *output = output_;
-	size_t num_read = 0;
-
-	while (length && *pbuf) {
-		const size_t pull_length = MIN((*pbuf)->len, length);
-
-		if (pull_length > 0) {
-			const void *data = net_buf_pull_mem(*pbuf, pull_length);
-			memcpy(output, data, pull_length);
-
-			output += pull_length;
-			length -= pull_length;
-			num_read += pull_length;
-		}
-
-		if ((*pbuf)->len == 0) {
-			struct net_buf *const empty_frag = *pbuf;
-
-			*pbuf = empty_frag->frags;
-			empty_frag->frags = NULL;
-
-			net_buf_unref(empty_frag);
-		}
-	}
-
-	return num_read;
+	return (struct cobs_buf_cursor){
+		.buf = net_buf_ref(buf),
+		.offset = 0,
+	};
 }
 
-static int net_buf_find_zero(struct cobs_encode *encode, size_t *num_processed,
-			     size_t *zero_position)
+static void cobs_buf_cursor_delete(struct cobs_buf_cursor *cursor)
+{
+	if (cursor->buf) {
+		net_buf_unref(cursor->buf);
+		cursor->buf = NULL;
+	}
+
+	cursor->offset = 0;
+}
+
+static int cobs_buf_cursor_read(struct cobs_buf_cursor *const cursor, void *const output_,
+				size_t length)
+{
+	uint8_t *output = output_;
+
+	while (cursor->buf && length) {
+		struct net_buf *const buf = cursor->buf;
+		const size_t read_length = MIN(buf->len - cursor->offset, length);
+		if (read_length == 0) {
+			if (buf->frags) {
+				cursor->buf = net_buf_ref(buf->frags);
+				net_buf_unref(buf);
+			} else {
+				cursor->buf = NULL;
+				net_buf_unref(buf);
+			}
+			cursor->offset = 0;
+			continue;
+		}
+
+		memcpy(output, buf->data + cursor->offset, read_length);
+		output += read_length;
+		length -= read_length;
+		cursor->offset += read_length;
+	}
+
+	if (length) {
+		return -ENOBUFS;
+	}
+
+	return 0;
+}
+
+static int cursor_find_zero(struct cobs_buf_cursor *cursor, size_t *num_processed,
+			    size_t *zero_position)
 {
 	size_t offset = 0;
 
-	struct net_buf *buf = encode->buf;
+	struct net_buf *buf = cursor->buf;
+	size_t start_offset = cursor->offset;
 	while (buf) {
-		for (uint16_t i = 0; i < buf->len; i += 1, offset += 1) {
+		for (uint16_t i = start_offset; i < buf->len; i += 1, offset += 1) {
 			if (buf->data[i] == 0) {
 				*num_processed = offset + 1;
 				*zero_position = offset;
@@ -53,6 +74,7 @@ static int net_buf_find_zero(struct cobs_encode *encode, size_t *num_processed,
 		}
 
 		buf = buf->frags;
+		start_offset = 0;
 	}
 
 	*num_processed = offset;
@@ -112,12 +134,12 @@ enum cobs_decode_result cobs_decode_stream(struct cobs_decode *decode, uint8_t i
 void cobs_encode_stream_init(struct cobs_encode *encode, struct net_buf *buf)
 {
 	*encode = (struct cobs_encode){
-		.buf = buf,
+		.cursor = cobs_buf_cursor_new(buf),
 	};
 
 	size_t num_processed;
 	size_t zero_position;
-	int ret = net_buf_find_zero(encode, &num_processed, &zero_position);
+	int ret = cursor_find_zero(&encode->cursor, &num_processed, &zero_position);
 	if (ret == 0) {
 		__ASSERT_NO_MSG(num_processed != 0);
 
@@ -136,15 +158,14 @@ void cobs_encode_stream_init(struct cobs_encode *encode, struct net_buf *buf)
 
 void cobs_encode_stream_free(struct cobs_encode *encode)
 {
-	if (encode->buf) {
-		net_buf_unref(encode->buf);
-	}
-
+	cobs_buf_cursor_delete(&encode->cursor);
 	*encode = (struct cobs_encode){};
 }
 
 static inline bool cobs_encode_stream_single(struct cobs_encode *encode, uint8_t *output)
 {
+	int ret;
+
 	switch (encode->state) {
 	case COBS_ENCODE_STATE_ZEROS_FIRSTBYTE:
 		*output = 0x01;
@@ -153,15 +174,15 @@ static inline bool cobs_encode_stream_single(struct cobs_encode *encode, uint8_t
 	case COBS_ENCODE_STATE_ZEROS_CODE: {
 		if (encode->u.zeros.next_zero == 0) {
 			uint8_t zero;
-			size_t num_pulled = net_buf_pull_across_fragments(&encode->buf, &zero, 1);
-			__ASSERT_NO_MSG(num_pulled == 1);
-			ARG_UNUSED(num_pulled);
+			ret = cobs_buf_cursor_read(&encode->cursor, &zero, sizeof(zero));
+			__ASSERT_NO_MSG(ret == 0);
+			ARG_UNUSED(ret);
 
 			__ASSERT_NO_MSG(zero == 0);
 
 			size_t num_processed;
 			size_t zero_position;
-			int ret = net_buf_find_zero(encode, &num_processed, &zero_position);
+			int ret = cursor_find_zero(&encode->cursor, &num_processed, &zero_position);
 			if (num_processed == 0) {
 				*output = 0x01;
 				encode->state = COBS_ENCODE_STATE_FINAL_ZERO;
@@ -231,9 +252,9 @@ static inline bool cobs_encode_stream_single(struct cobs_encode *encode, uint8_t
 	}
 
 	case COBS_ENCODE_STATE_ZEROS_DATA: {
-		size_t num_pulled = net_buf_pull_across_fragments(&encode->buf, output, 1);
-		__ASSERT_NO_MSG(num_pulled == 1);
-		ARG_UNUSED(num_pulled);
+		ret = cobs_buf_cursor_read(&encode->cursor, output, 1);
+		__ASSERT_NO_MSG(ret == 0);
+		ARG_UNUSED(ret);
 
 		encode->u.zeros.data_left -= 1;
 		encode->u.zeros.next_zero -= 1;
@@ -264,9 +285,9 @@ static inline bool cobs_encode_stream_single(struct cobs_encode *encode, uint8_t
 	}
 
 	case COBS_ENCODE_STATE_NOZEROS_DATA: {
-		size_t num_pulled = net_buf_pull_across_fragments(&encode->buf, output, 1);
-		__ASSERT_NO_MSG(num_pulled == 1);
-		ARG_UNUSED(num_pulled);
+		ret = cobs_buf_cursor_read(&encode->cursor, output, 1);
+		__ASSERT_NO_MSG(ret == 0);
+		ARG_UNUSED(ret);
 
 		encode->u.nozeros.data_left -= 1;
 		encode->u.nozeros.total_length -= 1;
