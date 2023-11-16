@@ -17,6 +17,7 @@ void unsafe_cobs_reset_encode_pool(void)
 	struct net_buf *const buf = (struct net_buf *)&_net_buf_pool[0].b[0];
 
 	if (buf->ref) {
+		printk("WARNING: force unref netbuf\n");
 		net_buf_unref(buf);
 	}
 }
