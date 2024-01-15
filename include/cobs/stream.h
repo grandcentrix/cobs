@@ -12,6 +12,11 @@
 #include <zephyr/net/buf.h>
 #endif
 
+struct cobs_buf_cursor {
+	struct net_buf *buf;
+	size_t offset;
+};
+
 enum cobs_decode_state {
 	COBS_DECODE_STATE_CODE = 0,
 	COBS_DECODE_STATE_DATA,
@@ -103,15 +108,7 @@ struct cobs_encode_nozeros {
 };
 
 struct cobs_encode {
-	/**
-	 * @internal Current raw data source.
-	 *
-	 * This doesn't necessarily match the buffer that this encoder was
-	 * initialized with. As soon as fragment was fully written it gets
-	 * unrefed and this variable is set to the next one, if any.
-	 */
-	struct net_buf *buf;
-
+	struct cobs_buf_cursor cursor;
 	enum cobs_encode_state state;
 
 	union {
@@ -151,9 +148,8 @@ static inline void cobs_decode_reset(struct cobs_decode *decode)
 /**
  * Initialize stream.
  *
- * Takes ownership of `buf` meaning the reference count is not increased.
- * If you have any other references, keep in mind that the encoder detaches and
- * unrefs fragments as soon as they were processed.
+ * Will create a new reference to `buf` and store it within `encode`.
+ * You must not modify `buf` while `encode` holds a reference to it.
  *
  * You have to call `cobs_encode_stream_free` to prevent leaking any buffers.
  */

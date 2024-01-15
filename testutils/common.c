@@ -17,6 +17,7 @@ void unsafe_cobs_reset_encode_pool(void)
 	struct net_buf *const buf = (struct net_buf *)&_net_buf_pool[0].b[0];
 
 	if (buf->ref) {
+		printk("WARNING: force unref netbuf\n");
 		net_buf_unref(buf);
 	}
 }
@@ -30,6 +31,8 @@ size_t cobs_encode_stream_simple(const uint8_t *const input, const size_t input_
 
 	struct cobs_encode encode;
 	cobs_encode_stream_init(&encode, netbuf);
+	net_buf_unref(netbuf);
+
 	const size_t num_written = cobs_encode_stream(&encode, output, output_length);
 	__ASSERT_NO_MSG(num_written <= output_length);
 
