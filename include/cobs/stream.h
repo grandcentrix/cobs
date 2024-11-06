@@ -129,8 +129,25 @@ struct cobs_encode {
  * A frame is only fully received and decoded when the mentioned zero byte was
  * received and the decoder is in the finished state.
  */
-enum cobs_decode_result cobs_decode_stream(struct cobs_decode *decode, uint8_t input_byte,
-					   uint8_t *output_byte, bool *output_available);
+enum cobs_decode_result cobs_decode_stream_single(struct cobs_decode *decode, uint8_t input_byte,
+						  uint8_t *output_byte, bool *output_available);
+
+/**
+ * Pass multiple bytes to the decoder.
+ *
+ * This calls #cobs_decode_stream_single in a loop, but it's more efficient
+ * thanks to inlining. This function will stop the loop if:
+ * - The current frame is complete.
+ * - All input bytes where consumed.
+ * - We need to write to the output buffer but there is no space left.
+ *
+ * That means, you can't expect this function to consume all input bytes. You
+ * have to possibly reset the decoder or allocate more data and call this
+ * function again with the rest of the data.
+ */
+enum cobs_decode_result cobs_decode_stream(struct cobs_decode *decode, const uint8_t *input,
+					   size_t input_size, uint8_t *output, size_t output_size,
+					   size_t *num_read, size_t *num_written);
 
 /**
  * Reset decoder.

@@ -66,8 +66,8 @@ int cobs_decode_stream_simple(const uint8_t *const input, const size_t input_len
 			 output_length);
 
 		bool available = false;
-		const enum cobs_decode_result res =
-			cobs_decode_stream(&decode, input[i], &output[output_length], &available);
+		const enum cobs_decode_result res = cobs_decode_stream_single(
+			&decode, input[i], &output[output_length], &available);
 
 		if (available) {
 			output_length += 1;
