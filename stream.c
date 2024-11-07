@@ -81,8 +81,10 @@ static int cursor_find_zero(struct cobs_buf_cursor *cursor, size_t *num_processe
 	return -ENOENT;
 }
 
-enum cobs_decode_result cobs_decode_stream(struct cobs_decode *decode, uint8_t input_byte,
-					   uint8_t *output_byte, bool *output_available)
+/* NOTE: It's important to inline this, to make cobs_decode_stream faster. */
+ALWAYS_INLINE
+enum cobs_decode_result cobs_decode_stream_single(struct cobs_decode *decode, uint8_t input_byte,
+						  uint8_t *output_byte, bool *output_available)
 {
 	*output_available = false;
 
@@ -129,6 +131,36 @@ enum cobs_decode_result cobs_decode_stream(struct cobs_decode *decode, uint8_t i
 	default:
 		return COBS_DECODE_RESULT_ERROR;
 	}
+}
+
+enum cobs_decode_result cobs_decode_stream(struct cobs_decode *decode, const uint8_t *input,
+					   size_t input_size, uint8_t *output, size_t output_size,
+					   size_t *num_read, size_t *num_written)
+{
+	*num_read = 0;
+	*num_written = 0;
+
+	while (input_size > 0 && (output_size > 0 || input[0] == 0)) {
+		bool output_available = false;
+		enum cobs_decode_result result =
+			cobs_decode_stream_single(decode, input[0], output, &output_available);
+
+		*num_read += 1;
+		input++;
+		input_size -= 1;
+
+		if (output_available) {
+			*num_written += 1;
+			output++;
+			output_size -= 1;
+		}
+
+		if (result != COBS_DECODE_RESULT_CONSUMED) {
+			return result;
+		}
+	}
+
+	return COBS_DECODE_RESULT_CONSUMED;
 }
 
 void cobs_encode_stream_init(struct cobs_encode *encode, struct net_buf *buf)
