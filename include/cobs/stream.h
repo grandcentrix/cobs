@@ -6,10 +6,16 @@
 #include <stdbool.h>
 #include <version.h>
 
-#if (KERNEL_VERSION_MAJOR < 3) || ((KERNEL_VERSION_MAJOR == 3) && (KERNEL_VERSION_MINOR == 0))
+#ifdef CONFIG_ZEPHYR_NRF_MODULE
+#include <ncs_version.h>
+#endif
+
+#if KERNEL_VERSION_NUMBER < 0x30100
 #include <net/buf.h>
-#else
+#elif NCS_VERSION_NUMBER < 0x20800 && KERNEL_VERSION_NUMBER < 0x40000
 #include <zephyr/net/buf.h>
+#else
+#include <zephyr/net_buf.h>
 #endif
 
 struct cobs_buf_cursor {
